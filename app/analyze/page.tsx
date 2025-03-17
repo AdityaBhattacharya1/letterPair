@@ -75,7 +75,7 @@ export default function AnalyzePage() {
 
 	return (
 		<div className="min-h-screen">
-			<BackgroundPaths title="LetterPair">
+			<BackgroundPaths title="Letter Pair">
 				<div className="max-w-4xl mx-auto">
 					<motion.div className="bg-white/90 dark:bg-black/90 rounded-2xl p-6 shadow-xl mt-10">
 						<h2 className="text-2xl font-bold my-6 text-center">
