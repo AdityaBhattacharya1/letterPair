@@ -13,89 +13,124 @@ Letter Pair is a tool that evaluates and compares two font files, extracting key
 -   🧮 Computes a compatibility score based on font properties
 -   📂 Simple and Intuitive UI
 
-## Methodology
+# **Methodology**
 
-The code analyzes font characteristics to determine compatibility between different fonts using several typographic metrics. Here's an explanation of the methodology:
+This algorithm evaluates font compatibility by analyzing key typographic characteristics and computing a compatibility score. It employs **stroke contrast analysis**, **x-height comparison**, **character width measurements**, and a **feature vector approach** that quantifies font attributes into numerical representations.
 
-## 1. Stroke Contrast Analysis
+---
 
-Stroke contrast is a fundamental characteristic of typefaces that refers to the variation in thickness between different parts of a character's strokes. Here's how it's calculated:
+## **1. Stroke Contrast Analysis**
 
-### SVG Path Extraction
+Stroke contrast refers to the variation in thickness between different parts of a character's strokes. This feature helps distinguish fonts with thick-thin transitions (e.g., Didone serifs) from those with uniform strokes (e.g., geometric sans-serifs).
 
--   The font is converted to SVG paths using the `text-to-svg` library
--   Characters are rendered at a large size (300px) for better accuracy
--   The SVG path commands are parsed to extract geometric information
+### **SVG Path Extraction**
 
-### Stroke Segment Identification
+-   Fonts are converted to SVG paths using `text-to-svg`.
+-   Characters are rendered at a large size (300px) for higher accuracy.
+-   The SVG path commands are parsed to extract stroke geometry.
 
--   The algorithm walks through SVG path commands (M, L, C, Q)
--   For each segment, it calculates:
-    -   The distance between points (potential stroke width)
-    -   The angle of the segment (to classify direction)
+### **Stroke Segment Identification**
 
-### Segment Filtering
+-   The algorithm processes path commands (M, L, C, Q) to extract stroke data.
+-   For each stroke segment, it calculates:
+    -   The **distance** between points (potential stroke width).
+    -   The **angle** of the segment (to classify direction).
 
--   Segments are filtered by length:
-    -   Minimum length: 3% of font size (filters out tiny segments)
-    -   Maximum length: 50% of font size (prevents outline traversals being counted as strokes)
--   Segments are categorized by angle:
-    -   Horizontal: within ±20° of horizontal (0° or 180°)
-    -   Vertical: within ±20° of vertical (90°)
-    -   Diagonal segments are excluded as they can confuse contrast measurements
+### **Segment Filtering**
 
-### Contrast Calculation
+-   Segments are filtered based on length:
+    -   **Minimum length:** 3% of font size (eliminates tiny artifacts).
+    -   **Maximum length:** 50% of font size (prevents outline misinterpretations).
+-   Segments are classified as:
+    -   **Horizontal:** ±20° from 0° or 180°.
+    -   **Vertical:** ±20° from 90°.
+    -   **Diagonal strokes are ignored** to prevent skewed measurements.
 
--   For each direction (horizontal and vertical):
-    -   A trimmed mean is calculated to avoid outliers
-    -   The algorithm removes segments with extreme values
--   The contrast ratio is calculated as:
-    -   `thicker_stroke_width / thinner_stroke_width`
--   The result is capped at 10:1 (reasonable maximum for most fonts)
+### **Contrast Calculation**
 
-The algorithm uses multiple characters known for showing stroke contrast ('O', 'H', 'B', 'o', 'e', 'g', 'D', 'G', 'Q', 'p', 'q') and takes the average of their individual contrast measurements.
+-   The algorithm computes a **trimmed mean** for horizontal and vertical stroke widths.
+-   The contrast ratio is derived from:
+    ```
+    stroke_contrast = thicker_stroke_width / thinner_stroke_width
+    ```
+-   To prevent extreme values, the contrast is **capped at 10:1** (a reasonable maximum for most fonts).
+-   Multiple contrast-sensitive characters are analyzed ('O', 'H', 'B', 'o', 'e', 'g', 'D', 'G', 'Q', 'p', 'q'), and their average contrast ratio is taken.
 
-## 2. Other Typographic Metrics
+---
 
-### x-Height
+## **2. Other Typographic Metrics**
 
--   Measured using the lowercase 'x' character
--   Normalized by dividing by the font size
--   Represents the height of lowercase letters without ascenders or descenders
+### **x-Height**
 
-### Cap Height
+-   Measured using the lowercase **"x"**.
+-   Normalized by dividing by the font size.
+-   Reflects the height of lowercase letters without ascenders/descenders.
 
--   Measured using the uppercase 'H' character
--   Normalized by dividing by the font size
--   Represents the height of capital letters
+### **Cap Height**
 
-### Average Character Width
+-   Measured using the uppercase **"H"**.
+-   Normalized by dividing by the font size.
+-   Represents the height of capital letters.
 
--   Calculated by measuring the width of the entire lowercase alphabet
--   Divided by the number of characters (26)
--   Normalized by dividing by the font size
+### **Average Character Width**
 
-## 3. Compatibility Score Calculation
+-   Calculated using the width of the lowercase alphabet.
+-   Normalized by dividing by the font size.
+-   Provides a measure of a font's overall proportions.
 
-The compatibility score between two fonts is calculated using a weighted formula:
+---
+
+## **3. Feature Vector Representation & Distance Calculation**
+
+Every font is represented as a **feature vector**, a numerical representation of key attributes. This allows fonts to be compared using mathematical distance calculations.
+
+### **Feature Vector Definition**
+
+Each font is described as a multi-dimensional vector:
 
 ```
-score = 0.35 * xHeightRatio + 0.25 * strokeContrastScore + 0.2 * widthRatio
+Font Vector = [xHeight, capHeight, strokeContrast, avgCharWidth, serif, geometric, aperture]
 ```
 
 Where:
 
--   **xHeightRatio**: How similar the x-heights are between fonts (1 - |fontA.xHeight/fontB.xHeight - 1|)
--   **strokeContrastScore**: How similar the stroke contrasts are (minContrast/maxContrast)
--   **widthRatio**: How similar the average character widths are (min/max)
+-   **xHeight**: Normalized height of "x".
+-   **capHeight**: Normalized height of "H".
+-   **strokeContrast**: Average thick-to-thin stroke ratio.
+-   **avgCharWidth**: Average width of lowercase letters.
+-   **serif (0-1)**: 0 = sans-serif, 1 = serif.
+-   **geometric (1-10)**: 1 = humanist, 10 = geometric.
+-   **aperture (1-10)**: 1 = closed, 10 = open.
 
-The weights (0.4, 0.35, 0.25) reflect the relative importance of each factor in font pairing:
+### **Euclidean Distance Calculation**
 
--   x-Height similarity is most important (40%)
--   Stroke contrast similarity is next (35%)
--   Width similarity is least important but still significant (25%)
+The similarity between two fonts is computed using **Euclidean distance**:
 
-This weighted approach balances these key typographic characteristics to produce a single compatibility score between 0 and 1, where higher values indicate greater compatibility.
+```
+distance = √[(f1A - f1B)² + (f2A - f2B)² + ... + (fnA - fnB)²]
+```
+
+Where **lower values** indicate **greater similarity**.
+
+For **complementary pairings**, the goal is:
+
+-   **Low distance** in x-height, width, and weight (ensures cohesion).
+-   **High distance** in contrast, serif style, and geometry (creates contrast).
+
+---
+
+## **4. Compatibility Score Calculation**
+
+A final **compatibility score (0-1)** is derived from a weighted combination of **feature similarity** and **Euclidean distance**:
+
+```
+score = (1 - normalized_distance) * weight_factor
+```
+
+-   **Higher score** (closer to 1) = More compatible fonts.
+-   **Lower score** (closer to 0) = Less compatible fonts.
+
+The algorithm balances **cohesive elements** (x-height, width) with **contrasting features** (serif vs. sans-serif, stroke contrast) to determine **both similarity and complementary potential**.
 
 ## 📦 Tech Stack
 
