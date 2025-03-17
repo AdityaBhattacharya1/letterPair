@@ -6,36 +6,36 @@ import { motion, useInView } from 'framer-motion'
 const fontPairs = [
 	{
 		id: 1,
-		heading: 'Montserrat & Merriweather',
+		heading: 'Georgia & Verdana',
 		description:
-			'A classic pairing with excellent contrast between the geometric sans-serif and the serif typeface.',
-		headingFont: 'Montserrat',
-		bodyFont: 'Merriweather',
-		sampleHeading: 'Typography',
+			'A timeless combination that ensures readability with a classic serif and a highly legible sans-serif.',
+		headingFont: 'Georgia',
+		bodyFont: 'Verdana',
+		sampleHeading: 'Elegance',
 		sampleBody:
-			'The art and technique of arranging type to make written language legible, readable, and appealing when displayed.',
+			'A refined and graceful quality that enhances visual appeal and readability in typography.',
 	},
 	{
 		id: 2,
-		heading: 'Playfair Display & Source Sans Pro',
+		heading: 'Montserrat & Roboto',
 		description:
-			'An elegant combination that balances the dramatic serifs with a clean, readable sans-serif.',
-		headingFont: 'Playfair Display',
-		bodyFont: 'Source Sans Pro',
-		sampleHeading: 'Contrast',
+			'A modern and clean pairing that offers a contemporary look suitable for digital and print media.',
+		headingFont: 'Montserrat',
+		bodyFont: 'Roboto',
+		sampleHeading: 'Simplicity',
 		sampleBody:
-			'The difference in visual properties that makes an object distinguishable from other objects and the background.',
+			'The quality of being clear and easy to read, ensuring effective communication and design harmony.',
 	},
 	{
 		id: 3,
-		heading: 'Roboto & Lora',
+		heading: 'Poppins & Merriweather',
 		description:
-			'A versatile pairing that works well for both digital and print applications.',
-		headingFont: 'Roboto',
-		bodyFont: 'Lora',
-		sampleHeading: 'Harmony',
+			'A striking combination that blends a geometric sans-serif with a sophisticated serif for contrast and readability.',
+		headingFont: 'Poppins',
+		bodyFont: 'Merriweather',
+		sampleHeading: 'Versatility',
 		sampleBody:
-			'The pleasing arrangement of parts, creating a consistent, orderly, or aesthetically pleasing whole.',
+			'The ability to adapt typography to different styles and contexts while maintaining clarity and aesthetics.',
 	},
 ]
 
@@ -98,16 +98,6 @@ function FontPairCard({
 					<span>Heading: {pair.headingFont}</span>
 					<span>Body: {pair.bodyFont}</span>
 				</div>
-
-				<motion.button
-					whileHover={{ scale: 1.03 }}
-					whileTap={{ scale: 0.98 }}
-					className="mt-4 w-full py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 
-                    text-neutral-700 dark:text-neutral-300 font-medium
-                    transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
-				>
-					Use This Pair
-				</motion.button>
 			</div>
 		</motion.div>
 	)
