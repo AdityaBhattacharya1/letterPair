@@ -24,7 +24,7 @@ export default function RootLayout({
 					href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@400;600&family=Roboto:wght@400;700&family=Lora:wght@400;700&display=swap"
 					rel="stylesheet"
 				/>
-				<link rel="icon" href="/favicon.ico" sizes="any" />
+				<link rel="icon" href="/favicon.svg" sizes="any" />
 			</head>
 			<body className={inter.className}>
 				<ThemeProvider
