@@ -10,6 +10,7 @@ interface FontMetrics {
 	capHeight: number
 	strokeContrast: number | null
 	avgCharWidth: number
+	featureVector: number[]
 }
 
 interface Point {
@@ -40,6 +41,10 @@ export async function POST(req: Request) {
 
 		const fontAMetrics = analyzeFont(Buffer.from(fontABuffer))
 		const fontBMetrics = analyzeFont(Buffer.from(fontBBuffer))
+		const featureDistance = calculateFeatureDistance(
+			fontAMetrics.featureVector,
+			fontBMetrics.featureVector
+		)
 
 		const compatibilityScore = calculateCompatibilityScore(
 			fontAMetrics,
@@ -85,14 +90,17 @@ function normalizeAngle(angle: number): number {
 	return positiveAngle % Math.PI
 }
 
-function classifyStrokeDirection(angle: number): 'vertical' | 'horizontal' {
-	const normalizedAngle = normalizeAngle(angle)
-	// Consider angles close to 0 or π as horizontal, others as vertical
-	// This uses a 30-degree threshold (π/6 radians) for classification
-	return normalizedAngle < Math.PI / 6 ||
-		normalizedAngle > Math.PI - Math.PI / 6
-		? 'horizontal'
-		: 'vertical'
+function calculateFeatureDistance(
+	vectorA: number[],
+	vectorB: number[]
+): number {
+	if (vectorA.length !== vectorB.length) return Infinity
+
+	const sumOfSquares = vectorA.reduce((sum, value, index) => {
+		return sum + Math.pow(value - vectorB[index], 2)
+	}, 0)
+
+	return Math.sqrt(sumOfSquares)
 }
 
 function analyzeCharacterStrokeContrast(
@@ -339,6 +347,15 @@ function analyzeCharacterStrokeContrast(
 	}
 }
 
+function getFeatureVector(font: FontMetrics): number[] {
+	return [
+		font.xHeight,
+		font.capHeight,
+		font.strokeContrast ?? 0,
+		font.avgCharWidth,
+	]
+}
+
 function analyzeFont(fontBuffer: Buffer): FontMetrics {
 	// Write the font buffer to a temporary file.
 	const tempFontPath = writeBufferToTempFile(fontBuffer)
@@ -413,8 +430,15 @@ function analyzeFont(fontBuffer: Buffer): FontMetrics {
 			strokeContrast = median
 		}
 	}
+	const featureVector = getFeatureVector({
+		xHeight,
+		capHeight,
+		strokeContrast,
+		avgCharWidth,
+		featureVector: [],
+	})
 
-	return { xHeight, capHeight, strokeContrast, avgCharWidth }
+	return { xHeight, capHeight, strokeContrast, avgCharWidth, featureVector }
 }
 
 function calculateCompatibilityScore(
@@ -437,8 +461,17 @@ function calculateCompatibilityScore(
 		fontB.avgCharWidth / fontA.avgCharWidth
 	)
 
+	const featureDistance = calculateFeatureDistance(
+		fontA.featureVector,
+		fontB.featureVector
+	)
+	const featureDistanceScore = Math.max(0, 1 - featureDistance / 10)
+
 	// Weighted score based on typographic principles
 	const score =
-		0.4 * xHeightRatio + 0.35 * strokeContrastScore + 0.25 * widthRatio
+		0.35 * xHeightRatio +
+		0.25 * strokeContrastScore +
+		0.2 * widthRatio +
+		0.2 * featureDistanceScore
 	return score
 }
