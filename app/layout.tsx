@@ -25,6 +25,11 @@ export default function RootLayout({
 					rel="stylesheet"
 				/>
 				<link rel="icon" href="/favicon.svg" sizes="any" />
+				<script
+					src="https://beamanalytics.b-cdn.net/beam.min.js"
+					data-token="a24be98c-ce23-46dc-93d4-d67b6ca7118d"
+					async
+				></script>
 			</head>
 			<body className={inter.className}>
 				<ThemeProvider
