@@ -79,7 +79,6 @@ export default function AnalyzePage() {
 		}
 	}
 
-	console.log('=============RESULT', analysisResult)
 	return (
 		<div className="min-h-screen">
 			<BackgroundPaths title="Letter Pair">

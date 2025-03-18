@@ -1,7 +1,10 @@
 'use client'
 
 import React from 'react'
-import Plot from 'react-plotly.js'
+import dynamic from 'next/dynamic'
+
+// Dynamically import react-plotly.js with SSR disabled
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
 
 interface TriangleMethodData {
 	points: {

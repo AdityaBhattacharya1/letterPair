@@ -37,7 +37,6 @@ export default function FontMetrics({
 	fontCName,
 }: FontMetricsProps) {
 	const multiFont = Boolean(fontC)
-	console.log('ASDF', compatibilityScore)
 	const scoreValue = multiFont
 		? Number((compatibilityScores?.overall || 0).toFixed(2))
 		: compatibilityScore || 0
