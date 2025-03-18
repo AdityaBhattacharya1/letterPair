@@ -28,34 +28,104 @@ export async function POST(req: Request) {
 		const formData = await req.formData()
 		const fontAFile = formData.get('fontA') as File
 		const fontBFile = formData.get('fontB') as File
-
 		if (!fontAFile || !fontBFile) {
 			return NextResponse.json(
-				{ error: 'Both font files are required' },
+				{ error: 'Font A and Font B are required' },
 				{ status: 400 }
 			)
 		}
-
 		const fontABuffer = await fontAFile.arrayBuffer()
 		const fontBBuffer = await fontBFile.arrayBuffer()
+		const fontCFile = formData.get('fontC') as File
 
-		const fontAMetrics = analyzeFont(Buffer.from(fontABuffer))
-		const fontBMetrics = analyzeFont(Buffer.from(fontBBuffer))
-		const featureDistance = calculateFeatureDistance(
-			fontAMetrics.featureVector,
-			fontBMetrics.featureVector
-		)
+		if (fontCFile) {
+			const fontCBuffer = await fontCFile.arrayBuffer()
+			const fontAMetrics = analyzeFont(Buffer.from(fontABuffer))
+			const fontBMetrics = analyzeFont(Buffer.from(fontBBuffer))
+			const fontCMetrics = analyzeFont(Buffer.from(fontCBuffer))
+			const compatibilityScoreAB = calculateCompatibilityScore(
+				fontAMetrics,
+				fontBMetrics
+			)
+			const compatibilityScoreAC = calculateCompatibilityScore(
+				fontAMetrics,
+				fontCMetrics
+			)
+			const compatibilityScoreBC = calculateCompatibilityScore(
+				fontBMetrics,
+				fontCMetrics
+			)
+			const overallScore =
+				(compatibilityScoreAB +
+					compatibilityScoreAC +
+					compatibilityScoreBC) /
+				3
 
-		const compatibilityScore = calculateCompatibilityScore(
-			fontAMetrics,
-			fontBMetrics
-		)
+			const getFontPoint = (
+				font: FontMetrics
+			): [number, number, number] => {
+				return [
+					font.strokeContrast !== null
+						? font.strokeContrast / 10
+						: 0.1,
+					font.avgCharWidth,
+					font.xHeight,
+				]
+			}
+			const pointA = getFontPoint(fontAMetrics)
+			const pointB = getFontPoint(fontBMetrics)
+			const pointC = getFontPoint(fontCMetrics)
+			const vectorSubtract = (p: number[], q: number[]): number[] =>
+				p.map((v, i) => v - q[i])
+			const crossProduct = (u: number[], v: number[]): number[] => [
+				u[1] * v[2] - u[2] * v[1],
+				u[2] * v[0] - u[0] * v[2],
+				u[0] * v[1] - u[1] * v[0],
+			]
+			const vectorLength = (v: number[]): number =>
+				Math.sqrt(v.reduce((sum, val) => sum + val * val, 0))
+			const AB = vectorSubtract(pointB, pointA)
+			const AC = vectorSubtract(pointC, pointA)
+			const cross = crossProduct(AB, AC)
+			const triangleArea = 0.5 * vectorLength(cross)
+			const distance = (p: number[], q: number[]): number =>
+				Math.sqrt(
+					p.reduce((sum, val, i) => sum + Math.pow(val - q[i], 2), 0)
+				)
+			const AB_length = distance(pointA, pointB)
+			const BC_length = distance(pointB, pointC)
+			const CA_length = distance(pointC, pointA)
+			const trianglePerimeter = AB_length + BC_length + CA_length
 
-		return NextResponse.json({
-			fontA: fontAMetrics,
-			fontB: fontBMetrics,
-			compatibilityScore,
-		})
+			return NextResponse.json({
+				fontA: fontAMetrics,
+				fontB: fontBMetrics,
+				fontC: fontCMetrics,
+				compatibilityScores: {
+					AB: compatibilityScoreAB,
+					AC: compatibilityScoreAC,
+					BC: compatibilityScoreBC,
+					overall: overallScore,
+				},
+				triangleMethod: {
+					points: { A: pointA, B: pointB, C: pointC },
+					area: triangleArea,
+					perimeter: trianglePerimeter,
+				},
+			})
+		} else {
+			const fontAMetrics = analyzeFont(Buffer.from(fontABuffer))
+			const fontBMetrics = analyzeFont(Buffer.from(fontBBuffer))
+			const compatibilityScore = calculateCompatibilityScore(
+				fontAMetrics,
+				fontBMetrics
+			)
+			return NextResponse.json({
+				fontA: fontAMetrics,
+				fontB: fontBMetrics,
+				compatibilityScore,
+			})
+		}
 	} catch (error) {
 		return NextResponse.json(
 			{ error: (error as Error).message },
@@ -66,7 +136,6 @@ export async function POST(req: Request) {
 
 function writeBufferToTempFile(buffer: Buffer, ext = '.ttf'): string {
 	const tempDir = os.tmpdir()
-	// Create a unique file name
 	const tempFileName = `font-${Date.now()}-${Math.random()
 		.toString(36)
 		.substring(2)}${ext}`
@@ -95,11 +164,9 @@ function calculateFeatureDistance(
 	vectorB: number[]
 ): number {
 	if (vectorA.length !== vectorB.length) return Infinity
-
 	const sumOfSquares = vectorA.reduce((sum, value, index) => {
 		return sum + Math.pow(value - vectorB[index], 2)
 	}, 0)
-
 	return Math.sqrt(sumOfSquares)
 }
 
@@ -110,24 +177,18 @@ function analyzeCharacterStrokeContrast(
 ): number | null {
 	try {
 		const d = textToSVG.getD(char, { x: 0, y: 0, fontSize })
-
 		const commands = parseSVG.parseSVG(d)
-
 		const strokeSegments: StrokeSegment[] = []
 		let lastPoint: Point | null = null
-
 		const minSegmentLength = fontSize * 0.03
 		const maxSegmentLength = fontSize * 0.5
-
 		for (const cmd of commands) {
 			let currentPoint: Point | null = null
-
 			switch (cmd.code) {
-				case 'M': // Move to
+				case 'M':
 					currentPoint = { x: cmd.x, y: cmd.y }
 					break
-
-				case 'L': // Line to
+				case 'L':
 					if (lastPoint) {
 						currentPoint = { x: cmd.x, y: cmd.y }
 						const distance = calculateDistance(
@@ -135,8 +196,6 @@ function analyzeCharacterStrokeContrast(
 							currentPoint
 						)
 						const angle = calculateAngle(lastPoint, currentPoint)
-
-						// Only consider segments of reasonable length
 						if (
 							distance >= minSegmentLength &&
 							distance <= maxSegmentLength
@@ -148,33 +207,25 @@ function analyzeCharacterStrokeContrast(
 						}
 					}
 					break
-
-				case 'C': // Cubic Bezier curve
+				case 'C':
 					if (lastPoint) {
 						currentPoint = { x: cmd.x, y: cmd.y }
 						const controlPoint1 = { x: cmd.x1, y: cmd.y1 }
 						const controlPoint2 = { x: cmd.x2, y: cmd.y2 }
-
-						// Sample points along the curve
 						const numSamples = 10
 						let prevSamplePoint = lastPoint
-
 						for (let i = 1; i <= numSamples; i++) {
 							const t = i / numSamples
-
-							// Cubic Bezier formula
 							const sampleX =
 								Math.pow(1 - t, 3) * lastPoint.x +
 								3 * Math.pow(1 - t, 2) * t * controlPoint1.x +
 								3 * (1 - t) * Math.pow(t, 2) * controlPoint2.x +
 								Math.pow(t, 3) * currentPoint.x
-
 							const sampleY =
 								Math.pow(1 - t, 3) * lastPoint.y +
 								3 * Math.pow(1 - t, 2) * t * controlPoint1.y +
 								3 * (1 - t) * Math.pow(t, 2) * controlPoint2.y +
 								Math.pow(t, 3) * currentPoint.y
-
 							const samplePoint = { x: sampleX, y: sampleY }
 							const distance = calculateDistance(
 								prevSamplePoint,
@@ -184,8 +235,6 @@ function analyzeCharacterStrokeContrast(
 								prevSamplePoint,
 								samplePoint
 							)
-
-							// Only add segments of reasonable length
 							if (
 								distance >= minSegmentLength &&
 								distance <= maxSegmentLength
@@ -195,35 +244,26 @@ function analyzeCharacterStrokeContrast(
 									angle: angle,
 								})
 							}
-
 							prevSamplePoint = samplePoint
 						}
 					}
 					break
-
-				case 'Q': // Quadratic Bezier curve
+				case 'Q':
 					if (lastPoint) {
 						currentPoint = { x: cmd.x, y: cmd.y }
 						const controlPoint = { x: cmd.x1, y: cmd.y1 }
-
-						// Sample points along the curve
 						const numSamples = 8
 						let prevSamplePoint = lastPoint
-
 						for (let i = 1; i <= numSamples; i++) {
 							const t = i / numSamples
-
-							// Quadratic Bezier formula
 							const sampleX =
 								Math.pow(1 - t, 2) * lastPoint.x +
 								2 * (1 - t) * t * controlPoint.x +
 								Math.pow(t, 2) * currentPoint.x
-
 							const sampleY =
 								Math.pow(1 - t, 2) * lastPoint.y +
 								2 * (1 - t) * t * controlPoint.y +
 								Math.pow(t, 2) * currentPoint.y
-
 							const samplePoint = { x: sampleX, y: sampleY }
 							const distance = calculateDistance(
 								prevSamplePoint,
@@ -233,8 +273,6 @@ function analyzeCharacterStrokeContrast(
 								prevSamplePoint,
 								samplePoint
 							)
-
-							// Only add segments of reasonable length
 							if (
 								distance >= minSegmentLength &&
 								distance <= maxSegmentLength
@@ -244,50 +282,35 @@ function analyzeCharacterStrokeContrast(
 									angle: angle,
 								})
 							}
-
 							prevSamplePoint = samplePoint
 						}
 					}
 					break
 			}
-
 			if (currentPoint) {
 				lastPoint = currentPoint
 			}
 		}
-
 		if (strokeSegments.length > 0) {
-			// Improved angle classification - use more precise angle ranges
 			const horizontalSegments: StrokeSegment[] = []
 			const verticalSegments: StrokeSegment[] = []
-
-			// Use more precise angle classification
 			strokeSegments.forEach((segment) => {
 				const normalizedAngle = normalizeAngle(segment.angle)
-
-				// Horizontal: within 20° of 0° or 180°
 				if (
 					normalizedAngle < Math.PI / 9 ||
 					normalizedAngle > Math.PI - Math.PI / 9
 				) {
 					horizontalSegments.push(segment)
-				}
-				// Vertical: within 20° of 90°
-				else if (
+				} else if (
 					Math.abs(normalizedAngle - Math.PI / 2) <
 					Math.PI / 9
 				) {
 					verticalSegments.push(segment)
 				}
-				// Ignore diagonal strokes for contrast calculation
 			})
-
-			// If we don't have enough segments in either direction, return null
 			if (horizontalSegments.length < 2 || verticalSegments.length < 2) {
 				return null
 			}
-
-			// Calculate median stroke width for each direction
 			const getMedian = (segments: StrokeSegment[]): number => {
 				if (segments.length === 0) return 0
 				const sortedSegments = [...segments].sort(
@@ -300,46 +323,33 @@ function analyzeCharacterStrokeContrast(
 							2
 					: sortedSegments[mid].width
 			}
-
-			// Use trimmed mean instead of median to avoid outliers
 			const getTrimmedMean = (segments: StrokeSegment[]): number => {
 				if (segments.length <= 2) return getMedian(segments)
-
 				const sortedSegments = [...segments].sort(
 					(a, b) => a.width - b.width
 				)
-				// Trim 20% from both ends
 				const trimAmount = Math.floor(sortedSegments.length * 0.2)
 				const trimmedSegments = sortedSegments.slice(
 					trimAmount,
 					sortedSegments.length - trimAmount
 				)
-
 				const sum = trimmedSegments.reduce(
 					(acc, seg) => acc + seg.width,
 					0
 				)
 				return sum / trimmedSegments.length
 			}
-
 			const horizontalWidth = getTrimmedMean(horizontalSegments)
 			const verticalWidth = getTrimmedMean(verticalSegments)
-
-			// Calculate contrast ratio with bounds
 			if (horizontalWidth > 0 && verticalWidth > 0) {
-				// Ensure we're always dividing larger by smaller
 				const thickStroke = Math.max(horizontalWidth, verticalWidth)
 				const thinStroke = Math.min(horizontalWidth, verticalWidth)
-
 				if (thinStroke > 0) {
-					// Cap the contrast ratio to prevent extreme values
 					const ratio = thickStroke / thinStroke
-					// For most fonts, stroke contrast rarely exceeds 10:1
 					return Math.min(ratio, 10)
 				}
 			}
 		}
-
 		return null
 	} catch (error) {
 		console.error(`Error analyzing stroke contrast for '${char}':`, error)
@@ -357,31 +367,17 @@ function getFeatureVector(font: FontMetrics): number[] {
 }
 
 function analyzeFont(fontBuffer: Buffer): FontMetrics {
-	// Write the font buffer to a temporary file.
 	const tempFontPath = writeBufferToTempFile(fontBuffer)
-
-	// Load the font using text-to-svg by providing the file path.
 	const textToSVG = TextToSVG.loadSync(tempFontPath)
-	// After loading, remove the temporary file.
 	fs.unlinkSync(tempFontPath)
-
-	const fontSize = 300 // Using larger font size for better accuracy
-
-	// Get metrics for lowercase "x" and uppercase "H"
+	const fontSize = 300
 	const xMetrics = textToSVG.getMetrics('x', { fontSize })
 	const hMetrics = textToSVG.getMetrics('H', { fontSize })
-
-	// Normalize metrics by fontSize.
 	const xHeight = xMetrics.height / fontSize
 	const capHeight = hMetrics.height / fontSize
-
-	// Compute average character width from sample text.
 	const sampleText = 'abcdefghijklmnopqrstuvwxyz'
 	const sampleMetrics = textToSVG.getMetrics(sampleText, { fontSize })
 	const avgCharWidth = sampleMetrics.width / sampleText.length / fontSize
-
-	// Use characters known for showing stroke contrast in typography
-	// Include more characters for a more accurate reading
 	const contrastChars = [
 		'O',
 		'H',
@@ -395,9 +391,7 @@ function analyzeFont(fontBuffer: Buffer): FontMetrics {
 		'p',
 		'q',
 	]
-
 	const strokeContrastValues: number[] = []
-
 	for (const char of contrastChars) {
 		const contrast = analyzeCharacterStrokeContrast(
 			textToSVG,
@@ -408,21 +402,15 @@ function analyzeFont(fontBuffer: Buffer): FontMetrics {
 			strokeContrastValues.push(contrast)
 		}
 	}
-
-	// Calculate overall stroke contrast (using trimmed mean to avoid outliers)
 	let strokeContrast: number | null = null
 	if (strokeContrastValues.length > 0) {
 		strokeContrastValues.sort((a, b) => a - b)
-
-		// Remove extreme outliers (values more than 3x the median)
 		const median =
 			strokeContrastValues[Math.floor(strokeContrastValues.length / 2)]
 		const filteredValues = strokeContrastValues.filter(
 			(val) => val <= median * 3
 		)
-
 		if (filteredValues.length > 0) {
-			// Calculate the average of the remaining values
 			strokeContrast =
 				filteredValues.reduce((sum, val) => sum + val, 0) /
 				filteredValues.length
@@ -437,7 +425,6 @@ function analyzeFont(fontBuffer: Buffer): FontMetrics {
 		avgCharWidth,
 		featureVector: [],
 	})
-
 	return { xHeight, capHeight, strokeContrast, avgCharWidth, featureVector }
 }
 
@@ -446,28 +433,21 @@ function calculateCompatibilityScore(
 	fontB: FontMetrics
 ): number {
 	const xHeightRatio = 1 - Math.abs(fontA.xHeight / fontB.xHeight - 1)
-
-	// Better stroke contrast comparison
 	let strokeContrastScore = 0.5
 	if (fontA.strokeContrast !== null && fontB.strokeContrast !== null) {
 		const maxContrast = Math.max(fontA.strokeContrast, fontB.strokeContrast)
 		const minContrast = Math.min(fontA.strokeContrast, fontB.strokeContrast)
 		strokeContrastScore = minContrast / maxContrast
 	}
-
-	// Width ratio comparison
 	const widthRatio = Math.min(
 		fontA.avgCharWidth / fontB.avgCharWidth,
 		fontB.avgCharWidth / fontA.avgCharWidth
 	)
-
 	const featureDistance = calculateFeatureDistance(
 		fontA.featureVector,
 		fontB.featureVector
 	)
 	const featureDistanceScore = Math.max(0, 1 - featureDistance / 10)
-
-	// Weighted score based on typographic principles
 	const score =
 		0.35 * xHeightRatio +
 		0.25 * strokeContrastScore +

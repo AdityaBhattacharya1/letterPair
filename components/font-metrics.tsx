@@ -2,39 +2,52 @@
 
 import { motion } from 'framer-motion'
 
+interface FontData {
+	strokeContrast: number
+	avgCharWidth: number
+	xHeight: number
+}
+
+interface CompatibilityScores {
+	AB: number
+	AC: number
+	BC: number
+	overall: number
+}
+
 interface FontMetricsProps {
-	fontA: {
-		strokeContrast: number
-		avgCharWidth: number
-		xHeight: number
-	}
-	fontB: {
-		strokeContrast: number
-		avgCharWidth: number
-		xHeight: number
-	}
-	compatibilityScore: string
+	fontA: FontData
+	fontB: FontData
+	fontC?: FontData
+	compatibilityScore?: number
+	compatibilityScores?: CompatibilityScores
 	fontAName: string
 	fontBName: string
+	fontCName?: string
 }
 
 export default function FontMetrics({
 	fontA,
 	fontB,
+	fontC,
 	compatibilityScore,
+	compatibilityScores,
 	fontAName,
 	fontBName,
+	fontCName,
 }: FontMetricsProps) {
-	const scoreValue = Number.parseFloat(compatibilityScore)
+	const multiFont = Boolean(fontC)
+	console.log('ASDF', compatibilityScore)
+	const scoreValue = multiFont
+		? Number((compatibilityScores?.overall || 0).toFixed(2))
+		: compatibilityScore || 0
 
-	// Determine score color
 	const getScoreColor = () => {
 		if (scoreValue >= 0.8) return 'text-green-600 dark:text-green-400'
 		if (scoreValue >= 0.6) return 'text-yellow-600 dark:text-yellow-400'
 		return 'text-red-600 dark:text-red-400'
 	}
 
-	// Determine score text
 	const getScoreText = () => {
 		if (scoreValue >= 0.8) return 'Excellent Match'
 		if (scoreValue >= 0.6) return 'Good Match'
@@ -73,8 +86,14 @@ export default function FontMetrics({
 				</h3>
 				<div className="flex items-center justify-center">
 					<div className={`text-5xl font-bold ${getScoreColor()}`}>
-						{Number(parseFloat(compatibilityScore).toFixed(2)) *
-							100}
+						{multiFont
+							? Number(
+									(compatibilityScores?.overall || 0).toFixed(
+										2
+									)
+							  ) * 100
+							: Number((compatibilityScore || 0).toFixed(2)) *
+							  100}
 						%
 					</div>
 					<div className="ml-3 text-left">
@@ -90,11 +109,14 @@ export default function FontMetrics({
 
 			<motion.div
 				variants={itemVariants}
-				className="grid md:grid-cols-2 gap-8"
+				className={
+					multiFont
+						? 'grid md:grid-cols-3 gap-8'
+						: 'grid md:grid-cols-2 gap-8'
+				}
 			>
 				<div className="bg-neutral-50 dark:bg-neutral-900 rounded-xl p-5 shadow-sm">
 					<h4 className="text-lg font-semibold mb-4">{fontAName}</h4>
-
 					<div className="space-y-4">
 						<MetricBar
 							label="Stroke Contrast"
@@ -102,14 +124,12 @@ export default function FontMetrics({
 							maxValue={3}
 							color="bg-blue-500"
 						/>
-
 						<MetricBar
 							label="Average Width"
 							value={fontA.avgCharWidth.toFixed(3)}
 							maxValue={1}
 							color="bg-purple-500"
 						/>
-
 						<MetricBar
 							label="x-Height"
 							value={fontA.xHeight}
@@ -121,7 +141,6 @@ export default function FontMetrics({
 
 				<div className="bg-neutral-50 dark:bg-neutral-900 rounded-xl p-5 shadow-sm">
 					<h4 className="text-lg font-semibold mb-4">{fontBName}</h4>
-
 					<div className="space-y-4">
 						<MetricBar
 							label="Stroke Contrast"
@@ -129,14 +148,12 @@ export default function FontMetrics({
 							maxValue={3}
 							color="bg-blue-500"
 						/>
-
 						<MetricBar
 							label="Average Width"
 							value={fontB.avgCharWidth.toFixed(3)}
 							maxValue={1}
 							color="bg-purple-500"
 						/>
-
 						<MetricBar
 							label="x-Height"
 							value={fontB.xHeight}
@@ -145,67 +162,232 @@ export default function FontMetrics({
 						/>
 					</div>
 				</div>
+
+				{multiFont && fontC && (
+					<div className="bg-neutral-50 dark:bg-neutral-900 rounded-xl p-5 shadow-sm">
+						<h4 className="text-lg font-semibold mb-4">
+							{fontCName || 'Font C'}
+						</h4>
+						<div className="space-y-4">
+							<MetricBar
+								label="Stroke Contrast"
+								value={fontC.strokeContrast.toFixed(3)}
+								maxValue={3}
+								color="bg-blue-500"
+							/>
+							<MetricBar
+								label="Average Width"
+								value={fontC.avgCharWidth.toFixed(3)}
+								maxValue={1}
+								color="bg-purple-500"
+							/>
+							<MetricBar
+								label="x-Height"
+								value={fontC.xHeight}
+								maxValue={2}
+								color="bg-teal-500"
+							/>
+						</div>
+					</div>
+				)}
 			</motion.div>
 
-			<motion.div variants={itemVariants} className="mt-8">
-				<h4 className="text-lg font-semibold mb-3">
-					Compatibility Analysis
-				</h4>
-				<div className="bg-neutral-50 dark:bg-neutral-900 rounded-xl p-5 shadow-sm">
+			{multiFont && fontC ? (
+				<motion.div variants={itemVariants} className="mt-8">
+					<h4 className="text-lg font-semibold mb-3">
+						Pairwise Compatibility Analysis
+					</h4>
 					<div className="grid grid-cols-2 gap-4">
-						<div>
-							<div className="text-sm text-neutral-500 dark:text-neutral-400">
-								Stroke Contrast Difference
-							</div>
-							<div className="font-medium">
-								{Math.abs(
-									fontA.strokeContrast - fontB.strokeContrast
-								).toFixed(2)}
+						<div className="bg-neutral-50 dark:bg-neutral-900 rounded-xl p-5 shadow-sm">
+							<h5 className="text-md font-semibold mb-2">
+								Font A vs Font B
+							</h5>
+							<div className="space-y-2">
+								<div>
+									<span className="text-sm text-neutral-500 dark:text-neutral-400">
+										Stroke Contrast Diff:{' '}
+									</span>
+									<span className="font-medium">
+										{Math.abs(
+											fontA.strokeContrast -
+												fontB.strokeContrast
+										).toFixed(2)}
+									</span>
+								</div>
+								<div>
+									<span className="text-sm text-neutral-500 dark:text-neutral-400">
+										Width Ratio:{' '}
+									</span>
+									<span className="font-medium">
+										{(
+											fontA.avgCharWidth /
+											fontB.avgCharWidth
+										).toFixed(2)}
+									</span>
+								</div>
+								<div>
+									<span className="text-sm text-neutral-500 dark:text-neutral-400">
+										x-Height Ratio:{' '}
+									</span>
+									<span className="font-medium">
+										{(
+											fontA.xHeight / fontB.xHeight
+										).toFixed(2)}
+									</span>
+								</div>
 							</div>
 						</div>
-						<div>
-							<div className="text-sm text-neutral-500 dark:text-neutral-400">
-								Width Ratio
-							</div>
-							<div className="font-medium">
-								{(
-									fontA.avgCharWidth / fontB.avgCharWidth
-								).toFixed(2)}
+						<div className="bg-neutral-50 dark:bg-neutral-900 rounded-xl p-5 shadow-sm">
+							<h5 className="text-md font-semibold mb-2">
+								Font A vs Font C
+							</h5>
+							<div className="space-y-2">
+								<div>
+									<span className="text-sm text-neutral-500 dark:text-neutral-400">
+										Stroke Contrast Diff:{' '}
+									</span>
+									<span className="font-medium">
+										{Math.abs(
+											fontA.strokeContrast -
+												fontC.strokeContrast
+										).toFixed(2)}
+									</span>
+								</div>
+								<div>
+									<span className="text-sm text-neutral-500 dark:text-neutral-400">
+										Width Ratio:{' '}
+									</span>
+									<span className="font-medium">
+										{(
+											fontA.avgCharWidth /
+											fontC.avgCharWidth
+										).toFixed(2)}
+									</span>
+								</div>
+								<div>
+									<span className="text-sm text-neutral-500 dark:text-neutral-400">
+										x-Height Ratio:{' '}
+									</span>
+									<span className="font-medium">
+										{(
+											fontA.xHeight / fontC.xHeight
+										).toFixed(2)}
+									</span>
+								</div>
 							</div>
 						</div>
-						<div>
-							<div className="text-sm text-neutral-500 dark:text-neutral-400">
-								x-Height Ratio
-							</div>
-							<div className="font-medium">
-								{(fontA.xHeight / fontB.xHeight).toFixed(2)}
+						<div className="bg-neutral-50 dark:bg-neutral-900 rounded-xl p-5 shadow-sm">
+							<h5 className="text-md font-semibold mb-2">
+								Font B vs Font C
+							</h5>
+							<div className="space-y-2">
+								<div>
+									<span className="text-sm text-neutral-500 dark:text-neutral-400">
+										Stroke Contrast Diff:{' '}
+									</span>
+									<span className="font-medium">
+										{Math.abs(
+											fontB.strokeContrast -
+												fontC.strokeContrast
+										).toFixed(2)}
+									</span>
+								</div>
+								<div>
+									<span className="text-sm text-neutral-500 dark:text-neutral-400">
+										Width Ratio:{' '}
+									</span>
+									<span className="font-medium">
+										{(
+											fontB.avgCharWidth /
+											fontC.avgCharWidth
+										).toFixed(2)}
+									</span>
+								</div>
+								<div>
+									<span className="text-sm text-neutral-500 dark:text-neutral-400">
+										x-Height Ratio:{' '}
+									</span>
+									<span className="font-medium">
+										{(
+											fontB.xHeight / fontC.xHeight
+										).toFixed(2)}
+									</span>
+								</div>
 							</div>
 						</div>
-						<div>
-							<div className="text-sm text-neutral-500 dark:text-neutral-400">
+						<div className="col-span-2 bg-neutral-50 dark:bg-neutral-900 rounded-xl p-5 shadow-sm">
+							<h5 className="text-md font-semibold mb-2">
 								Overall Harmony
-							</div>
+							</h5>
 							<div className={`font-medium ${getScoreColor()}`}>
 								{getScoreText()}
 							</div>
 						</div>
 					</div>
-				</div>
-			</motion.div>
+				</motion.div>
+			) : (
+				<motion.div variants={itemVariants} className="mt-8">
+					<h4 className="text-lg font-semibold mb-3">
+						Compatibility Analysis
+					</h4>
+					<div className="bg-neutral-50 dark:bg-neutral-900 rounded-xl p-5 shadow-sm">
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<div className="text-sm text-neutral-500 dark:text-neutral-400">
+									Stroke Contrast Difference
+								</div>
+								<div className="font-medium">
+									{Math.abs(
+										fontA.strokeContrast -
+											fontB.strokeContrast
+									).toFixed(2)}
+								</div>
+							</div>
+							<div>
+								<div className="text-sm text-neutral-500 dark:text-neutral-400">
+									Width Ratio
+								</div>
+								<div className="font-medium">
+									{(
+										fontA.avgCharWidth / fontB.avgCharWidth
+									).toFixed(2)}
+								</div>
+							</div>
+							<div>
+								<div className="text-sm text-neutral-500 dark:text-neutral-400">
+									x-Height Ratio
+								</div>
+								<div className="font-medium">
+									{(fontA.xHeight / fontB.xHeight).toFixed(2)}
+								</div>
+							</div>
+							<div>
+								<div className="text-sm text-neutral-500 dark:text-neutral-400">
+									Overall Harmony
+								</div>
+								<div
+									className={`font-medium ${getScoreColor()}`}
+								>
+									{getScoreText()}
+								</div>
+							</div>
+						</div>
+					</div>
+				</motion.div>
+			)}
 		</motion.div>
 	)
 }
 
 interface MetricBarProps {
 	label: string
-	value: string | number // Update to accept both string and number
+	value: string | number
 	maxValue: number
 	color: string
 }
 
 function MetricBar({ label, value, maxValue, color }: MetricBarProps) {
-	const percentage = (Number(value) / maxValue) * 100 // Convert value to number
-
+	const percentage = (Number(value) / maxValue) * 100
 	return (
 		<div>
 			<div className="flex justify-between mb-1">

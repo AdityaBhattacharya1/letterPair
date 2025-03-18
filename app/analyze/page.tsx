@@ -8,12 +8,16 @@ import FontVisualizer from '@/components/font-visualizer'
 import FontMetrics from '@/components/font-metrics'
 import RecommendedPairs from '@/components/recommended-pairs'
 import Link from 'next/link'
+import TriangleVisualization from '@/components/triangle-visualizer'
+import { cn } from '@/lib/utils'
 
 export default function AnalyzePage() {
 	const [fontA, setFontA] = useState<File | null>(null)
 	const [fontB, setFontB] = useState<File | null>(null)
+	const [fontC, setFontC] = useState<File | null>(null)
 	const [fontAUrl, setFontAUrl] = useState<string | null>(null)
 	const [fontBUrl, setFontBUrl] = useState<string | null>(null)
+	const [fontCUrl, setFontCUrl] = useState<string | null>(null)
 	const [analysisResult, setAnalysisResult] = useState<any>(null)
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -23,7 +27,6 @@ export default function AnalyzePage() {
 		target: recommendationsRef,
 		offset: ['start end', 'end start'],
 	})
-
 	const opacity = useTransform(scrollYProgress, [0, 0.2], [0, 1])
 
 	const handleFontUpload = (
@@ -37,7 +40,7 @@ export default function AnalyzePage() {
 
 	const analyzeFonts = async () => {
 		if (!fontA || !fontB) {
-			setError('Please upload both fonts')
+			setError('Please upload at least two fonts')
 			return
 		}
 
@@ -48,6 +51,9 @@ export default function AnalyzePage() {
 			const formData = new FormData()
 			formData.append('fontA', fontA)
 			formData.append('fontB', fontB)
+			if (fontC) {
+				formData.append('fontC', fontC)
+			}
 
 			const response = await fetch('/api/analyze', {
 				method: 'POST',
@@ -73,6 +79,7 @@ export default function AnalyzePage() {
 		}
 	}
 
+	console.log('=============RESULT', analysisResult)
 	return (
 		<div className="min-h-screen">
 			<BackgroundPaths title="Letter Pair">
@@ -81,7 +88,7 @@ export default function AnalyzePage() {
 						<h2 className="text-2xl font-bold my-6 text-center">
 							Upload Your Fonts
 						</h2>
-						<div className="grid md:grid-cols-2 gap-6">
+						<div className="grid md:grid-cols-3 gap-6">
 							<FontUploader
 								label="Font A"
 								onUpload={(file) =>
@@ -104,6 +111,17 @@ export default function AnalyzePage() {
 								}
 								fileName={fontB?.name}
 							/>
+							<FontUploader
+								label="Font C (Optional)"
+								onUpload={(file) =>
+									handleFontUpload(
+										file,
+										setFontC,
+										setFontCUrl
+									)
+								}
+								fileName={fontC?.name}
+							/>
 						</div>
 						{error && (
 							<div className="mt-4 text-red-600">{error}</div>
@@ -125,19 +143,28 @@ export default function AnalyzePage() {
 							transition={{ duration: 0.8, delay: 0.3 }}
 							className="mt-12"
 						>
-							{/* Font Metrics Display */}
 							<FontMetrics
 								fontA={analysisResult.fontA}
 								fontB={analysisResult.fontB}
+								fontC={analysisResult.fontC}
+								compatibilityScores={
+									analysisResult.compatibilityScores
+								}
 								compatibilityScore={
 									analysisResult.compatibilityScore
 								}
 								fontAName={fontA?.name || 'Font A'}
 								fontBName={fontB?.name || 'Font B'}
+								fontCName={fontC?.name || 'Font C'}
 							/>
-
-							{/* Font Visualizer Section */}
-							<div className="grid md:grid-cols-2 gap-6 mt-8">
+							<div
+								className={cn(
+									'grid gap-6 mt-8',
+									fontCUrl
+										? 'md:grid-cols-3'
+										: 'md:grid-cols-2'
+								)}
+							>
 								{fontAUrl && (
 									<FontVisualizer
 										fontUrl={fontAUrl}
@@ -150,7 +177,18 @@ export default function AnalyzePage() {
 										fontName={fontB?.name || 'Font B'}
 									/>
 								)}
+								{fontCUrl && (
+									<FontVisualizer
+										fontUrl={fontCUrl}
+										fontName={fontC?.name || 'Font C'}
+									/>
+								)}
 							</div>
+							{analysisResult.triangleMethod && (
+								<TriangleVisualization
+									data={analysisResult.triangleMethod}
+								/>
+							)}
 							<motion.div
 								ref={recommendationsRef}
 								style={{ opacity }}
