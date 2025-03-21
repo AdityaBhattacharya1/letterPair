@@ -1,5 +1,5 @@
 'use client'
-import { Moon, Sun, Github } from 'lucide-react'
+import { Moon, Sun, Github, HandCoins } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
@@ -33,6 +33,16 @@ export function ThemeToggle() {
 				>
 					<Github className="h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
 					<Github className="absolute h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+				</Button>
+			</Link>
+			<Link href="https://github.com/sponsors/AdityaBhattacharya1">
+				<Button
+					variant="outline"
+					size="icon"
+					className="rounded-full ml-2 bg-white/80 dark:bg-black/80 backdrop-blur-sm border border-neutral-200 dark:border-neutral-800"
+				>
+					<HandCoins className="h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+					<HandCoins className="absolute h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
 				</Button>
 			</Link>
 		</motion.div>
