@@ -4,7 +4,7 @@
 
 ## 🖋️ Overview
 
-Letter Pair is a tool that evaluates and compares font files, extracting key metrics such as x-height, cap-height, stroke contrast, and average character width. It then calculates a compatibility score to help designers and typographers determine how well fonts pair together. With the new 3‑font system support, Letter Pair not only assesses two fonts at a time but also evaluates the overall harmony of a trio of fonts.
+Letter Pair is a tool that evaluates and compares font files, extracting key metrics such as x-height, cap-height, stroke contrast, and average character width. It then calculates a compatibility score to help designers and typographers determine how well fonts pair together. With its 3‑font system support, Letter Pair can not only assesses two fonts at a time but can also evaluate the overall harmony of a trio of fonts.
 
 ## 🚀 Features
 
@@ -175,7 +175,7 @@ This extended methodology ensures that the selection of font systems is both dat
 
 ```sh
 git clone https://github.com/AdityaBhattacharya1/letterPair
-cd font-compatibility-analyzer
+cd letterPair
 ```
 
 ### 2️⃣ Install Dependencies
