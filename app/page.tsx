@@ -33,6 +33,14 @@ export default function HomePage() {
 						</span>
 					</span>
 				</Link>
+				<div>
+					<Link
+						href="https://blogs.adityabh.is-a.dev/posts/typography-math/"
+						className="text-md text-white/45 underline mt-4 inline-block"
+					>
+						Check out how it works here
+					</Link>
+				</div>
 			</div>
 		</BackgroundPaths>
 	)
