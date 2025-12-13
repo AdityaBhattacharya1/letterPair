@@ -49,7 +49,7 @@
 		"framer-motion": "latest",
 		"input-otp": "1.4.1",
 		"lucide-react": "^0.454.0",
-		"next": "15.4.8",
+		"next": "15.4.9",
 		"next-themes": "latest",
 		"opentype.js": "^1.3.4",
 		"plotly.js": "^3.0.1",
