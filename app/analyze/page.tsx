@@ -22,17 +22,10 @@ export default function AnalyzePage() {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
-	const recommendationsRef = useRef<HTMLDivElement>(null)
-	const { scrollYProgress } = useScroll({
-		target: recommendationsRef,
-		offset: ['start end', 'end start'],
-	})
-	const opacity = useTransform(scrollYProgress, [0, 0.2], [0, 1])
-
 	const handleFontUpload = (
 		file: File,
 		setFont: Function,
-		setFontUrl: Function
+		setFontUrl: Function,
 	) => {
 		setFont(file)
 		setFontUrl(URL.createObjectURL(file))
@@ -64,14 +57,6 @@ export default function AnalyzePage() {
 
 			const result = await response.json()
 			setAnalysisResult(result)
-
-			if (recommendationsRef.current) {
-				setTimeout(() => {
-					recommendationsRef.current?.scrollIntoView({
-						behavior: 'smooth',
-					})
-				}, 500)
-			}
 		} catch (err) {
 			setError('Failed to analyze fonts. Please try again.')
 		} finally {
@@ -94,7 +79,7 @@ export default function AnalyzePage() {
 									handleFontUpload(
 										file,
 										setFontA,
-										setFontAUrl
+										setFontAUrl,
 									)
 								}
 								fileName={fontA?.name}
@@ -105,7 +90,7 @@ export default function AnalyzePage() {
 									handleFontUpload(
 										file,
 										setFontB,
-										setFontBUrl
+										setFontBUrl,
 									)
 								}
 								fileName={fontB?.name}
@@ -116,7 +101,7 @@ export default function AnalyzePage() {
 									handleFontUpload(
 										file,
 										setFontC,
-										setFontCUrl
+										setFontCUrl,
 									)
 								}
 								fileName={fontC?.name}
@@ -169,7 +154,7 @@ export default function AnalyzePage() {
 									'grid gap-6 mt-8',
 									fontCUrl
 										? 'md:grid-cols-3'
-										: 'md:grid-cols-2'
+										: 'md:grid-cols-2',
 								)}
 							>
 								{fontAUrl && (
@@ -196,17 +181,28 @@ export default function AnalyzePage() {
 									data={analysisResult.triangleMethod}
 								/>
 							)}
-							<motion.div
-								ref={recommendationsRef}
-								style={{ opacity }}
-								className="my-12"
-							>
-								<RecommendedPairs />
-							</motion.div>
+							<RecommendationsSection />
 						</motion.div>
 					)}
 				</div>
 			</BackgroundPaths>
 		</div>
+	)
+}
+
+function RecommendationsSection() {
+	const ref = useRef<HTMLDivElement>(null)
+
+	const { scrollYProgress } = useScroll({
+		target: ref,
+		offset: ['start end', 'end start'],
+	})
+
+	const opacity = useTransform(scrollYProgress, [0, 0.2], [0, 1])
+
+	return (
+		<motion.div ref={ref} style={{ opacity }} className="my-12">
+			<RecommendedPairs />
+		</motion.div>
 	)
 }
