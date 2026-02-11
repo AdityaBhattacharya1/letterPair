@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import { execSync } from 'child_process'
 import { AnalysisResult, FontMetrics } from './types'
 import {
 	analyzeWithFontTools,
 	calculateCompatibilityScore,
 	writeBufferToTempFile,
 } from './utils/util'
+
+export const runtime = 'nodejs'
 
 export async function POST(
 	req: Request,
