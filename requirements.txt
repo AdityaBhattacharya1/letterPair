@@ -1,4 +1,4 @@
 Flask==3.0.0
-fonttools==4.47.0
+fonttools==4.60.2
 numpy==1.26.4
 brotli==1.1.0
