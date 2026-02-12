@@ -8,7 +8,7 @@
 		"start": "next start",
 		"lint": "next lint",
 		"next-dev": "next dev",
-		"flask-dev": "FLASK_DEBUG=1 pip3 install -r requirements.txt && python3 -m flask --app app/api/analyze/index run -p 5328"
+		"flask-dev": "FLASK_DEBUG=1 pip3 install -r requirements.txt && python3 -m flask --app api/index run -p 5328"
 	},
 	"dependencies": {
 		"@emotion/is-prop-valid": "latest",
